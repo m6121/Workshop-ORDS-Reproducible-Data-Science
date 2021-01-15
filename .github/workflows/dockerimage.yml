@@ -38,6 +38,7 @@ jobs:
     container:
       image: m6121/ords-reproducible-data-science:${{ github.sha }}
       options: --user 0
+    needs: [build_docker_image]
 
     steps:
     - name: Checkout code
@@ -61,6 +62,7 @@ jobs:
     container:
       image: m6121/ords-reproducible-data-science:${{ github.sha }}
       options: --user 0
+    needs: [build_docker_image, re-execute_nb]
 
     steps:
     - name: Checkout code
