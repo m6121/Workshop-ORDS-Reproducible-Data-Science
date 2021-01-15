@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: jupyter/minimal-notebook:42f4c82a07ff
+      options: --user 0
 
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
+      with:
+        submodules: true
     - name: Convert to PDF
       run: jupyter nbconvert --to pdf Data-analysis.ipynb
     - name: Upload artifact
