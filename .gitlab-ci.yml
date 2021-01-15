@@ -1,0 +1,73 @@
+stages:
+  - build
+  - test
+  - compute
+  - deploy
+
+build_docker_image:
+  stage: build
+  image: docker:git
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: "/certs/client"
+  services:
+  - docker:dind
+  script:
+    - docker login -u gitlab-ci-token -p ${CI_BUILD_TOKEN} ${CI_REGISTRY}
+    - docker build -t ${CI_REGISTRY_IMAGE}:latest -t ${CI_REGISTRY_IMAGE}:${CI_BUILD_REF} .
+    - docker push ${CI_REGISTRY_IMAGE}:${CI_BUILD_REF}
+    - docker push ${CI_REGISTRY_IMAGE}:latest
+
+build_pdf_export:
+  stage: build
+  image: jupyter/minimal-notebook:42f4c82a07ff
+  script:
+    - jupyter nbconvert --to pdf Data-analysis.ipynb
+  artifacts:
+    paths:
+      - Data-analysis.pdf
+    expire_in: 6 months
+
+re-execute_nb:
+  stage: test
+  image: ${CI_REGISTRY_IMAGE}:${CI_BUILD_REF}
+  before_script:
+    - echo "${CHAT_TOKEN}" > .rocketchat_token
+    - echo "${CHAT_USER}" > .rocketchat_user
+    - echo "${CHAT_URL}" > .rocketchat_url
+    - git log -1 > git-message
+  script:
+    - papermill Data-analysis.ipynb Data-analysis_re-executed.ipynb
+    - jupyter nbconvert --to pdf Data-analysis_re-executed.ipynb
+    - nbdiff -s -o -a -d Data-analysis.ipynb Data-analysis_re-executed.ipynb > Data-analysis_diff
+    - if [[ $(cat Data-analysis_diff) ]]; then echo "*Re-executed notebook is different to uploaded one*" >> git-message; python3 push_to_chat.py --post_messages git-message; python3 push_to_chat.py --post_messages Data-analysis_diff; exit 1; fi
+  artifacts:
+    paths:
+      - Data-analysis_re-executed.ipynb
+      - Data-analysis_re-executed.pdf
+    expire_in: 6 months
+
+parameterise_nb:
+  stage: compute
+  image: ${CI_REGISTRY_IMAGE}:${CI_BUILD_REF}
+  script:
+    - for i in 2 3 5 8 13; do papermill -p kmeans_k ${i} Data-analysis.ipynb Data-analysis_parameterised_${i}.ipynb; jupyter nbconvert --to pdf Data-analysis_parameterised_${i}.ipynb; done
+  artifacts:
+    paths:
+      - Data-analysis_parameterised_*.ipynb
+      - Data-analysis_parameterised_*.pdf
+    expire_in: 6 months
+
+deploy_pdf:
+  stage: deploy
+  image: ${CI_REGISTRY_IMAGE}:${CI_BUILD_REF}
+  before_script:
+    - echo "${CHAT_TOKEN}" > .rocketchat_token
+    - echo "${CHAT_USER}" > .rocketchat_user
+  script:
+    - git log -1 > git-message
+    - python3 push_to_chat.py --post_messages git-message
+    - for i in 2 3 5 8 13; do python3 push_to_chat.py Data-analysis_parameterised_${i}.pdf; done
+  only:
+    - tags
+    - master
