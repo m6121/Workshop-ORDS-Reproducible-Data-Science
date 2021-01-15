@@ -1,0 +1,3 @@
+[submodule "Rmarkdown-workshop"]
+	path = Rmarkdown-workshop
+	url = https://github.com/AnjaEggert/ords-kick-off.git

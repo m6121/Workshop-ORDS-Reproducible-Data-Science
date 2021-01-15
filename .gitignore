@@ -1,0 +1,19 @@
+# vscode
+.vscode
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
+
+# Authentication Information
+.rocketchat_user
+.rocketchat_token
+.rocketchat_url
+
+# PDF export
+Data-analysis.pdf
+
+# Log files
+ords_push_chat.log
+
+# Temporary files
+Data-analysis_re-executed.ipynb
