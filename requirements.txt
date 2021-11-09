@@ -8,4 +8,4 @@ seaborn==0.11.0
 rocketchat-API==1.12.1
 jupyter-contrib-nbextensions==0.5.1
 papermill==2.2.2
-nbdime==2.1.0
+nbdime==2.1.1
